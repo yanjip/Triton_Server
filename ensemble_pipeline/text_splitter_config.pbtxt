@@ -1,0 +1,20 @@
+name: "text_splitter"
+backend: "python"
+
+# 输入：一个包含单个长字符串的张量
+input [
+  {
+    name: "INPUT_TEXT"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+  }
+]
+
+# 输出：一个包含多个短字符串的张量（长度可变）
+output [
+  {
+    name: "OUTPUT_CHUNKS"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]

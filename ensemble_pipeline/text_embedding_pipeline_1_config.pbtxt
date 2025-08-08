@@ -1,0 +1,60 @@
+name: "text_embedding_pipeline"
+platform: "ensemble"
+max_batch_size: 0 # Ensemble模型通常不直接处理批次
+
+# 流水线的最终输入
+input [
+  {
+    name: "PIPELINE_INPUT"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+  }
+]
+
+# 流水线的最终输出
+output [
+  {
+    name: "PIPELINE_OUTPUT"
+    data_type: TYPE_FP32
+    dims: [ -1, 768 ]
+  }
+]
+
+ensemble_scheduling {
+  step [
+    {
+      # 第一步：调用文本切分模型
+      model_name: "text_splitter"
+      model_version: -1 # 使用最新版本
+
+      # 将流水线的输入映射到text_splitter的输入
+      input_map {
+        key: "INPUT_TEXT"
+        value: "PIPELINE_INPUT"
+      }
+
+      # 将text_splitter的输出映射到一个内部张量
+      output_map {
+        key: "OUTPUT_CHUNKS"
+        value: "split_text_output" # 这是一个内部变量名
+      }
+    },
+    {
+      # 第二步：调用文本嵌入模型
+      model_name: "bge_embedder"
+      model_version: -1
+
+      # 将上一步的输出（内部张量）映射到bge_embedder的输入
+      input_map {
+        key: "INPUT_CHUNKS"
+        value: "split_text_output"
+      }
+
+      # 将bge_embedder的输出映射到流水线的最终输出
+      output_map {
+        key: "OUTPUT_EMBEDDINGS"
+        value: "PIPELINE_OUTPUT"
+      }
+    }
+  ]
+}

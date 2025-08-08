@@ -1,0 +1,30 @@
+name: "bge_embedder"
+backend: "python"
+max_batch_size: 8  # 设置最大批处理大小
+
+# 输入：一个字符串列表（由text_splitter生成）
+input [
+  {
+    name: "INPUT_CHUNKS"
+    data_type: TYPE_STRING
+    dims: [ -1 ]
+  }
+]
+
+# 输出：嵌入向量
+output [
+  {
+    name: "OUTPUT_EMBEDDINGS"
+    data_type: TYPE_FP32
+    # -1 代表批处理大小, 768是BGE-base模型的维度
+    dims: [ -1, 768 ]
+  }
+]
+
+# 实例组配置：使用2个GPU实例
+instance_group [
+  {
+    count: 2
+    kind: KIND_GPU
+  }
+]
