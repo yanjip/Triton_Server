@@ -1,0 +1,75 @@
+name: "bge_embedding"
+platform: "onnxruntime_onnx"
+max_batch_size: 16
+dynamic_batching {
+
+}
+input [
+  {
+    name: "input_ids"
+    data_type: TYPE_INT64
+    dims: [ -1 ]  # 搴忓垪闀垮害缁村害
+  },
+  {
+    name: "attention_mask"
+    data_type: TYPE_INT64
+    dims: [ -1 ]  # 搴忓垪闀垮害缁村害
+  },
+  {
+    name: "token_type_ids"
+    data_type: TYPE_INT64
+    dims: [ -1 ]  # 搴忓垪闀垮害缁村害
+  }
+]
+
+output [
+  {
+    name: "last_hidden_state"
+    data_type: TYPE_FP32
+    dims: [ -1, 1024 ]  # 搴忓垪闀垮害缁村害 + 闅愯棌鐘舵€佺淮搴�
+  }
+]
+
+instance_group [
+    {
+        kind: KIND_CPU
+        count: 1
+    }
+]
+
+
+-----------------------------------------------------
+name: "bge_pipeline"
+backend: "python"
+max_batch_size: 16
+dynamic_batching {
+}
+input [
+  {
+    name: "TEXT"
+    data_type: TYPE_STRING
+    dims: [ 1 ]
+  }
+]
+
+output [
+  {
+    name: "EMBEDDING"
+    data_type: TYPE_FP32
+    dims: [ 1024 ]
+  }
+]
+
+parameters [
+  {
+    key: "FORCE_CPU"
+    value: { string_value: "false" }
+  }
+]
+
+instance_group [
+    {
+        kind: KIND_CPU
+        count: 1
+    }
+]
