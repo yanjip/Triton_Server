@@ -10,7 +10,8 @@ def test_embedding_pipeline():
                 "它支持多种深度学习和机器学习框架，如TensorFlow、PyTorch、TensorRT和ONNX。" \
                 "通过Triton，开发者可以轻松地将训练好的模型部署为生产级服务。" \
                 "它提供了HTTP和gRPC两种协议接口，并支持动态批处理、模型版本控制和多模型集成等高级功能。" \
-                "这使得Triton成为构建可扩展、高吞吐量AI应用的理想选择。"
+                "这使得Triton成为构建可扩展、高吞吐量AI应用的理想选择。工业上已经广泛应用这种方式部署模型。" \
+                "此文章面向的读者对象为刚接触LMS的同学，意在为加入LMS团队的新同学提供一个手把手教程来搭建LMS开发测试环境，为之后的开发打下基础。在搭建的过程中，可以同时了解到一些Docker、K8s、Linux的相关基础知识。"
 
     # Triton的字符串输入需要是numpy数组，类型为object
     input_text_np = np.array([long_text.encode('utf-8')], dtype=object)
@@ -49,7 +50,7 @@ def test_embedding_pipeline():
     print(f"每个嵌入向量的维度: {embedding_vectors.shape[1]}")
     print(f"最终输出向量的形状: {embedding_vectors.shape}")
     print("\n前两个嵌入向量（部分）:")
-    print(embedding_vectors[:2, :5])
+    print(embedding_vectors[:3, :5])
 
 if __name__ == '__main__':
     test_embedding_pipeline()
