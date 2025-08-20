@@ -1,0 +1,53 @@
+Towhee
+Towhee 提供的 自动部署工具，其核心功能之一就是 根据用户定义的 Pipeline 自动生成符合 Triton 规范的代码。具体来说：当你运行脚本调用 build_pipeline_model 时，Towhee 会：
+
+●解析你定义的 Pipeline（如embedding_pipe），确定输入输出格式、算子逻辑、并行方式等；
+●自动生成 TritonPythonModel 类，并根据 Pipeline 逻辑填充必要方法（如execute中对输入的解析、调用你的 Pipeline 进行推理、输出结果的封装等）；
+●同时生成 Triton 所需的配置文件（如config.pbtxt，用于告诉 Triton 如何部署和运行模型 / 流水线，是 Triton 识别模型的 “说明书”）、模型目录结构（如models/pipeline/1/）等。
+
+简单说：Towhee 替你完成了适配 Triton 的 “模板代码” 编写工作，无需手动实现TritonPythonModel。
+
+
+embedding_pipe = (
+    pipe.input('context', 'process_type', 'model')
+    .map(('context', 'process_type', 'model'), 'vec', ops.embedding())
+    .output('vec')
+)
+towhee.build_pipeline_model(
+    dc_pipeline=embedding_pipe,
+    model_root='models',
+    format_priority=['onnx'],
+    parallelism=1,
+    server='triton'
+)
+1.定义一个能够接收文本数据、处理类型和模型参数的管道
+2.管道内部使用嵌入算子将输入数据转换为向量表示
+3.将这个管道以 ONNX 格式导出并部署到 Triton 推理服务器上
+4.可根据硬件环境（CPU/GPU）调整并行度参数
+
+此外，还会生成一个pipe.pickle文件，记录了流水线中各个组件（如模型、预处理 / 后处理函数、数据转换算子等）的连接关系（例如 “输入→预处理→模型 A→模型 B→后处理→输出” 的执行顺序）。
+自定义算子注册
+# 规避towhee不支持自定义算子部署为triton
+sed -i "s/getattr(hub, name)/getattr(ops, name)/g" /usr/local/lib/python3.8/dist-packages/towhee/serve/triton/pipeline_builder.py
+python3 /workspace/src/pipe_deploy_triton.py  # 生成部署到 Triton 的模型文件
+
+# 获取注册的算子
+pos=$(grep -n "if __name__" /workspace/src/pipe_deploy_triton.py | cut -d ":" -f 1)
+pos_end=$(wc -l < /workspace/src/pipe_deploy_triton.py)
+sed -i "${pos}, ${pos_end}d" /workspace/src/pipe_deploy_triton.py
+
+# 将算子添加至triton
+sed -i "3 r /workspace/src/pipe_deploy_triton.py"  /usr/local/bin/triton_builder
+sed -i "1 r /workspace/src/pipe_deploy_triton.py" /workspace/models/pipeline/1/model.py
+这段脚本的核心目的是解决 Towhee 自定义算子在 Triton 部署中的识别问题，流程可概括为：
+
+1.修改 Towhee 内部代码，确保优先从本地 ops 查找算子，而非远程仓库。
+2.执行部署脚本生成基础模型文件。
+3.从部署脚本中提取纯算子注册代码（剔除主程序逻辑）。
+4.将算子注册代码插入到 Triton 部署的关键文件中，确保运行时能加载自定义算子。
+
+通过这些文本替换操作，绕过了 Towhee 对自定义算子部署的限制，使包含 ops.embedding() 等自定义算子的管道能成功部署到 Triton 服务器。
+调用模型
+from towhee import triton_client
+client = triton_client.Client(url='100.93.8.243:8000')
+Towhee 提供的 triton_client 是对 Triton 官方 HTTP 客户端的进一步封装，简化了调用流程，使用这种方式调用时，无需手动构造复杂的 HTTP 请求格式，Towhee 会自动处理输入输出的格式转换，与 Triton 服务器进行交互。
